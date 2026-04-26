@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script&gt;
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script&gt;
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=Inter:wght@300;400;500;600&display=swap&quot; rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap&quot; rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "tertiary": "#c8c6c5","primary-fixed-dim": "#e9c176","tertiary-fixed": "#e5e2e1",
+          "error-container": "#93000a","on-tertiary-container": "#3b3b3b",
+          "on-tertiary-fixed-variant": "#474746","secondary-container": "#544738",
+          "primary-fixed": "#ffdea5","tertiary-container": "#a7a5a5","primary": "#e9c176",
+          "secondary-fixed": "#f4dfcb","on-primary-fixed": "#261900","on-primary-container": "#4e3700",
+          "error": "#ffb4ab","surface-container-highest": "#353534",
+          "on-secondary-fixed-variant": "#524436","background": "#131313",
+          "outline-variant": "#4e4639","surface-variant": "#353534","surface-bright": "#3a3939",
+          "secondary": "#d7c3b0","on-surface": "#e5e2e1","inverse-surface": "#e5e2e1",
+          "inverse-primary": "#775a19","on-background": "#e5e2e1","surface-tint": "#e9c176",
+          "primary-container": "#c5a059","tertiary-fixed-dim": "#c8c6c5",
+          "on-error-container": "#ffdad6","surface-container-high": "#2a2a2a",
+          "on-tertiary-fixed": "#1c1b1b","on-primary": "#412d00","on-surface-variant": "#d1c5b4",
+          "inverse-on-surface": "#313030","secondary-fixed-dim": "#d7c3b0","surface": "#131313",
+          "surface-container-lowest": "#0e0e0e","surface-container": "#201f1f",
+          "surface-container-low": "#1c1b1b","on-secondary": "#3a2e21","outline": "#9a8f80",
+          "surface-dim": "#131313","on-error": "#690005","on-secondary-fixed": "#241a0e",
+          "on-tertiary": "#313030","on-primary-fixed-variant": "#5d4201",
+          "on-secondary-container": "#c8b5a3"
+        },
+        borderRadius: {"DEFAULT": "0.25rem","lg": "0.5rem","xl": "0.75rem","full": "9999px"},
+        fontFamily: {
+          "body-md": ["Inter"],"body-lg": ["Inter"],"headline-lg": ["Noto Serif"],
+          "label-sm": ["Inter"],"headline-md": ["Noto Serif"],"label-lg": ["Inter"],
+          "display-lg": ["Noto Serif"],"display-xl": ["Noto Serif"]
+        },
+        fontSize: {
+          "body-md": ["16px", {"lineHeight": "24px","fontWeight": "400"}],
+          "body-lg": ["18px", {"lineHeight": "28px","fontWeight": "400"}],
+          "headline-lg": ["32px", {"lineHeight": "40px","fontWeight": "400"}],
+          "label-sm": ["12px", {"lineHeight": "16px","letterSpacing": "0.08em","fontWeight": "500"}],
+          "headline-md": ["24px", {"lineHeight": "32px","fontWeight": "500"}],
+          "label-lg": ["14px", {"lineHeight": "20px","letterSpacing": "0.05em","fontWeight": "600"}],
+          "display-lg": ["48px", {"lineHeight": "56px","letterSpacing": "-0.01em","fontWeight": "400"}],
+          "display-xl": ["64px", {"lineHeight": "72px","letterSpacing": "-0.02em","fontWeight": "400"}]
+        }
+      },
+    },
+  }
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+  body { background-color: #0A0A0A; color: #e5e2e1; overflow-x: hidden; min-height: max(884px, 100dvh); }
+</style>
+</head>
+<body class="font-body-md text-on-surface">
+
+<!-- ===== SUPABASE AUTH ===== -->
+<script>
+const SUPABASE_URL = 'https://oeobhzpkdmfnibhvonsq.supabase.co&#39;;
+const SUPABASE_KEY = 'sb_publishable_KCp4-j45I98OOvS3bqVmJA_4fvSWqZA';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let isLoginMode = true;
+
+// Check if already logged in
+window.onload = async function() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    updateNavbar(session.user.email);
+  } else {
+    showLoginPopup();
+  }
+}
+
+function showLoginPopup() {
+  document.getElementById('loginPopup').style.display = 'flex';
+}
+
+function hideLoginPopup() {
+  document.getElementById('loginPopup').style.display = 'none';
+}
+
+function toggleMode() {
+  isLoginMode = !isLoginMode;
+  document.getElementById('auth-title').textContent = isLoginMode ? 'Welcome Back' : 'Create Account';
+  document.getElementById('auth-subtitle').textContent = isLoginMode ? 'Sign in to make your reservation' : 'Join us for an unforgettable experience';
+  document.getElementById('auth-btn').textContent = isLoginMode ? 'Sign In' : 'Create Account';
+  document.getElementById('toggle-text').textContent = isLoginMode ? "New to L'Essence?" : 'Already have an account?';
+  document.getElementById('toggle-btn').textContent = isLoginMode ? 'Create Account' : 'Sign In';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('name-field').style.display = isLoginMode ? 'none' : 'block';
+}
+
+async function handleAuth() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value.trim();
+  const errorEl  = document.getElementById('auth-error');
+  const btnEl    = document.getElementById('auth-btn');
+
+  if (!email || !password) { errorEl.textContent = 'Please fill in all fields'; return; }
+
+  btnEl.textContent = 'Please wait...';
+  btnEl.disabled = true;
+  errorEl.textContent = '';
+
+  try {
+    if (isLoginMode) {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      currentUser = data.user;
+      updateNavbar(data.user.email);
+      hideLoginPopup();
+    } else {
+      const name = document.getElementById('auth-name').value.trim();
+      if (!name) { errorEl.textContent = 'Please enter your name'; btnEl.disabled = false; btnEl.textContent = 'Create Account'; return; }
+      const { data, error } = await supabaseClient.auth.signUp({
+        email, password,
+        options: { data: { full_name: name } }
+      });
+      if (error) throw error;
+      errorEl.style.color = '#C5A059';
+      errorEl.textContent = '✓ Account created! You may now sign in.';
+      setTimeout(() => { isLoginMode = true; toggleMode(); errorEl.style.color = '#ff6b6b'; errorEl.textContent = ''; }, 2500);
+    }
+  } catch (err) {
+    errorEl.style.color = '#ff6b6b';
+    errorEl.textContent = err.message || 'Something went wrong';
+  } finally {
+    btnEl.textContent = isLoginMode ? 'Sign In' : 'Create Account';
+    btnEl.disabled = false;
+  }
+}
+
+async function signInWithGoogle() {
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) alert('Google login failed! Try again.');
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  currentUser = null;
+  document.getElementById('user-greeting').textContent = '';
+  document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('reserve-btn').textContent = 'Reserve';
+  showLoginPopup();
+}
+
+function updateNavbar(email) {
+  const name = email.split('@')[0];
+  document.getElementById('user-greeting').textContent = '👋 ' + name;
+  document.getElementById('logout-btn').style.display = 'inline-block';
+  document.getElementById('reserve-btn').textContent = 'My Table';
+}
+
+function handleKeyPress(e) {
+  if (e.key === 'Enter') handleAuth();
+}
+</script>
+
+<!-- ===== LOGIN POPUP ===== -->
+<div id="loginPopup"
+  style="display:none; position:fixed; top:0; left:0;
+         width:100%; height:100%;
+         background:rgba(0,0,0,0.85);
+         z-index:99999;
+         justify-content:center;
+         align-items:center;
+         backdrop-filter:blur(8px);">
+
+  <div style="background:#1A1A1A; border:1px solid rgba(197,160,89,0.2);
+              border-radius:16px; padding:48px 40px;
+              width:90%; max-width:420px;
+              box-shadow:0 30px 80px rgba(0,0,0,0.8);
+              position:relative;">
+
+    <!-- Restaurant Name -->
+    <div style="text-align:center; margin-bottom:8px;
+                font-family:'Noto Serif'; color:#C5A059;
+                font-size:24px; font-style:italic;">
+      L'Essence
+    </div>
+
+    <!-- Title -->
+    <h2 id="auth-title"
+      style="text-align:center; color:#e5e2e1;
+             font-family:'Noto Serif'; font-weight:400;
+             font-size:20px; margin-bottom:6px;">
+      Welcome Back
+    </h2>
+    <p id="auth-subtitle"
+      style="text-align:center; color:#9a8f80;
+             font-size:13px; margin-bottom:32px;
+             font-family:'Inter';">
+      Sign in to make your reservation
+    </p>
+
+    <!-- Name field (signup only) -->
+    <div id="name-field" style="display:none; margin-bottom:20px;">
+      <label style="display:block; font-size:11px; font-weight:500;
+                    color:#9a8f80; margin-bottom:8px;
+                    letter-spacing:0.1em; text-transform:uppercase;
+                    font-family:'Inter';">
+        Full Name
+      </label>
+      <input id="auth-name" type="text" placeholder="Jean-Luc Picard"
+        onkeypress="handleKeyPress(event)"
+        style="width:100%; padding:14px 0; background:transparent;
+               border:none; border-bottom:1px solid rgba(217,197,178,0.2);
+               color:#e5e2e1; font-size:15px; outline:none;
+               font-family:'Inter'; box-sizing:border-box;
+               transition:border-color 0.2s;"
+        onfocus="this.style.borderBottomColor='#C5A059'"
+        onblur="this.style.borderBottomColor='rgba(217,197,178,0.2)'">
+    </div>
+
+    <!-- Email -->
+    <div style="margin-bottom:20px;">
+      <label style="display:block; font-size:11px; font-weight:500;
+                    color:#9a8f80; margin-bottom:8px;
+                    letter-spacing:0.1em; text-transform:uppercase;
+                    font-family:'Inter';">
+        Email Address
+      </label>
+      <input id="auth-email" type="email" placeholder="guest@example.com"
+        onkeypress="handleKeyPress(event)"
+        style="width:100%; padding:14px 0; background:transparent;
+               border:none; border-bottom:1px solid rgba(217,197,178,0.2);
+               color:#e5e2e1; font-size:15px; outline:none;
+               font-family:'Inter'; box-sizing:border-box;
+               transition:border-color 0.2s;"
+        onfocus="this.style.borderBottomColor='#C5A059'"
+        onblur="this.style.borderBottomColor='rgba(217,197,178,0.2)'">
+    </div>
+
+    <!-- Password -->
+    <div style="margin-bottom:24px;">
+      <label style="display:block; font-size:11px; font-weight:500;
+                    color:#9a8f80; margin-bottom:8px;
+                    letter-spacing:0.1em; text-transform:uppercase;
+                    font-family:'Inter';">
+        Password
+      </label>
+      <input id="auth-password" type="password" placeholder="••••••••"
+        onkeypress="handleKeyPress(event)"
+        style="width:100%; padding:14px 0; background:transparent;
+               border:none; border-bottom:1px solid rgba(217,197,178,0.2);
+               color:#e5e2e1; font-size:15px; outline:none;
+               font-family:'Inter'; box-sizing:border-box;
+               transition:border-color 0.2s;"
+        onfocus="this.style.borderBottomColor='#C5A059'"
+        onblur="this.style.borderBottomColor='rgba(217,197,178,0.2)'">
+    </div>
+
+    <!-- Error -->
+    <p id="auth-error"
+      style="color:#ff6b6b; font-size:13px; text-align:center;
+             margin-bottom:16px; min-height:18px; font-family:'Inter';">
+    </p>
+
+    <!-- Sign In Button -->
+    <button id="auth-btn" onclick="handleAuth()"
+      style="width:100%; padding:16px;
+             background:#C5A059; color:#412d00;
+             border:none; border-radius:4px;
+             font-size:13px; font-weight:600;
+             cursor:pointer; font-family:'Inter';
+             letter-spacing:0.2em; text-transform:uppercase;
+             transition:filter 0.2s; margin-bottom:16px;"
+      onmouseover="this.style.filter='brightness(1.1)'"
+      onmouseout="this.style.filter='brightness(1)'">
+      Sign In
+    </button>
+
+    <!-- Divider -->
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+      <div style="flex:1; height:1px; background:rgba(217,197,178,0.1);"></div>
+      <span style="color:#9a8f80; font-size:12px; font-family:'Inter';">or</span>
+      <div style="flex:1; height:1px; background:rgba(217,197,178,0.1);"></div>
+    </div>
+
+    <!-- Google Button -->
+    <button onclick="signInWithGoogle()"
+      style="width:100%; padding:14px;
+             background:transparent; color:#e5e2e1;
+             border:1px solid rgba(217,197,178,0.2);
+             border-radius:4px; font-size:13px; font-weight:500;
+             cursor:pointer; font-family:'Inter';
+             display:flex; align-items:center;
+             justify-content:center; gap:10px;
+             transition:border-color 0.2s; margin-bottom:24px;"
+      onmouseover="this.style.borderColor='#C5A059'"
+      onmouseout="this.style.borderColor='rgba(217,197,178,0.2)'">
+      <img src="https://www.google.com/favicon.ico&quot; width="16" height="16"/>
+      Continue with Google
+    </button>
+
+    <!-- Toggle -->
+    <div style="text-align:center; font-size:13px;
+                color:#9a8f80; font-family:'Inter';">
+      <span id="toggle-text">New to L'Essence?</span>
+      <button id="toggle-btn" onclick="toggleMode()"
+        style="background:none; border:none; color:#C5A059;
+               font-weight:600; cursor:pointer; font-size:13px;
+               font-family:'Inter'; margin-left:6px;">
+        Create Account
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- TopAppBar -->
+<header class="fixed top-0 z-50 w-full bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#D9C5B2]/10 shadow-[0_10px_40px_-15px_rgba(197,160,89,0.05)]">
+<div class="flex justify-between items-center w-full px-8 py-6 max-w-screen-2xl mx-auto">
+  <div class="flex items-center gap-8">
+    <span class="material-symbols-outlined text-[#C5A059] cursor-pointer hover:bg-[#1A1A1A] p-2 rounded-full transition-all">menu</span>
+    <nav class="hidden md:flex gap-8 font-['Noto_Serif'] font-light tracking-widest">
+      <a class="text-[#D9C5B2] hover:text-[#C5A059] transition-colors" href="#">Home</a>
+      <a class="text-[#D9C5B2] hover:text-[#C5A059] transition-colors" href="Menu.html">Menu</a>
+      <a class="text-[#C5A059] border-b border-[#C5A059] pb-1" href="#">Reservations</a>
+      <a class="text-[#D9C5B2] hover:text-[#C5A059] transition-colors" href="about.html">About</a>
+    </nav>
+  </div>
+  <div class="text-2xl font-serif italic text-[#C5A059]">L'Essence</div>
+  <div class="flex items-center gap-4">
+    <!-- User greeting -->
+    <span id="user-greeting"
+      style="color:#C5A059; font-family:'Inter'; font-size:13px; font-weight:500;">
+    </span>
+    <!-- Logout button -->
+    <button id="logout-btn" onclick="handleLogout()"
+      style="display:none; background:transparent; color:#9a8f80;
+             border:1px solid rgba(217,197,178,0.2); border-radius:4px;
+             padding:6px 14px; font-size:12px; cursor:pointer;
+             font-family:'Inter'; letter-spacing:0.05em;
+             transition:all 0.2s;"
+      onmouseover="this.style.borderColor='#C5A059'; this.style.color='#C5A059'"
+      onmouseout="this.style.borderColor='rgba(217,197,178,0.2)'; this.style.color='#9a8f80'">
+      Sign Out
+    </button>
+    <button id="reserve-btn"
+      class="bg-primary-container text-on-primary px-8 py-2 rounded-full font-label-lg uppercase tracking-widest hover:opacity-80 transition-all">
+      Reserve
+    </button>
+  </div>
+</div>
+</header>
+
+<main class="pt-32 pb-section-gap">
+  <!-- Hero Section -->
+  <section class="max-w-screen-2xl mx-auto px-8 mb-stack-lg">
+    <div class="relative h-[400px] rounded-xl overflow-hidden mb-16">
+      <div class="absolute inset-0 bg-black/60 z-10 flex flex-col justify-center items-center text-center px-4">
+        <h1 class="font-display-xl text-primary mb-4 italic">The Art of Dining</h1>
+        <p class="font-body-lg text-secondary max-w-2xl">Secure your passage to an evening of unparalleled culinary artistry. Each table at L'Essence is a curated stage for sensory exploration.</p>
+      </div>
+      <img alt="Fine dining interior" class="w-full h-full object-cover"
+           src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgJGAZu3H7BheKK79f6yG1a6vXlW3e5VkkK0iWZCXs8lyaVsxEKkP7mEtX7UusSTNknG3YLy77Q-cdBsxCKpQ2fN069ZTgDyO50XdLRFDtydD9emkYYJG4lrk04azc5ck7fsIyOkCMvsCXSpXok7Z5TKoRRURnwaQqnVqbfDTRaLjBtzOgX4lUvSAgbt06KAGVAVxl4bli-psrLulrr_3GFhczqbYy5mJXVmpowAclpwBrWEP53tRdA5Tup1r73mwC_rvxFiW_gM8"/&gt;
+    </div>
+  </section>
+
+  <!-- Reservation Flow -->
+  <section class="max-w-screen-xl mx-auto px-8 grid md:grid-cols-12 gap-16">
+    <!-- Left Info -->
+    <div class="md:col-span-5 space-y-12">
+      <div>
+        <h2 class="font-headline-lg text-primary mb-6">Inquiries</h2>
+        <p class="font-body-md text-on-surface-variant mb-8 leading-relaxed">
+          For parties larger than 6 guests or for private events in our Sommelier's Cellar, please contact our concierge directly.
+        </p>
+        <div class="space-y-4">
+          <div class="flex items-center gap-4 text-secondary">
+            <span class="material-symbols-outlined text-[#C5A059]">call</span>
+            <span class="font-label-lg">+33 1 45 67 89 00</span>
+          </div>
+          <div class="flex items-center gap-4 text-secondary">
+            <span class="material-symbols-outlined text-[#C5A059]">mail</span>
+            <span class="font-label-lg">concierge@lessence.com</span>
+          </div>
+        </div>
+      </div>
+      <div class="p-8 bg-[#1A1A1A] border border-[#D9C5B2]/10 rounded-xl shadow-2xl">
+        <h3 class="font-headline-md text-primary-fixed-dim mb-4 italic">Hours of Service</h3>
+        <ul class="space-y-3 font-body-md text-on-surface-variant">
+          <li class="flex justify-between border-b border-[#D9C5B2]/5 pb-2"><span>Tuesday - Thursday</span><span>18:00 - 22:30</span></li>
+          <li class="flex justify-between border-b border-[#D9C5B2]/5 pb-2"><span>Friday - Saturday</span><span>17:30 - 23:30</span></li>
+          <li class="flex justify-between"><span>Sunday</span><span>12:00 - 15:00</span></li>
+        </ul>
+      </div>
+      <div class="relative h-[250px] rounded-xl overflow-hidden grayscale contrast-125 opacity-60">
+        <img alt="Restaurant Map" class="w-full h-full object-cover"
+             src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4fUpmRBX8euXnzZ5OhHslQdeVUvSc6l_BRnhfu0H1MSkFUEK194lNA0572zB3LUNkfCJAqM2CaedlBtmvWRI47yxyC4_oAqqLFtbHOucDXEfYmRhCpxGjk6JjKn50vt6WnqHKwwcRgfdo-4sl5L9RKYxIJKUF7DaGo-8ke7cbDufRkfrcRL-VxgPn6VVEjAgucSTXxPoFu8kwq21c9rvskQxJ0KETU8HqwxRW6EmDfajGDlO3EsMhiNNu3rbpmx8i2DbBxXCV0CA"/&gt;
+      </div>
+    </div>
+
+    <!-- Right Form -->
+    <div class="md:col-span-7 bg-[#1A1A1A] p-10 md:p-16 rounded-xl border border-[#D9C5B2]/10 shadow-2xl">
+      <form id="reservationForm" class="space-y-10" onsubmit="submitReservation(event)">
+        <div class="grid md:grid-cols-2 gap-10">
+          <div class="relative group">
+            <label class="block font-label-sm text-secondary uppercase mb-2 tracking-widest">Full Name</label>
+            <input name="guest_name" class="w-full bg-transparent border-b border-[#D9C5B2]/20 focus:border-[#C5A059] focus:ring-0 py-3 text-on-surface transition-all placeholder:text-[#D9C5B2]/20" placeholder="Jean-Luc Picard" type="text" required/>
+          </div>
+          <div class="relative group">
+            <label class="block font-label-sm text-secondary uppercase mb-2 tracking-widest">Phone Number</label>
+            <input name="phone" class="w-full bg-transparent border-b border-[#D9C5B2]/20 focus:border-[#C5A059] focus:ring-0 py-3 text-on-surface transition-all placeholder:text-[#D9C5B2]/20" placeholder="+33 ..." type="tel"/>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-3 gap-10">
+          <div class="relative group">
+            <label class="block font-label-sm text-secondary uppercase mb-2 tracking-widest">Date</label>
+            <div class="flex items-center border-b border-[#D9C5B2]/20 focus-within:border-[#C5A059]">
+              <input name="date" class="w-full bg-transparent border-none focus:ring-0 py-3 text-on-surface transition-all" type="date" required/>
+              <span class="material-symbols-outlined text-[#C5A059] text-xl">calendar_today</span>
+            </div>
+          </div>
+          <div class="relative group">
+            <label class="block font-label-sm text-secondary uppercase mb-2 tracking-widest">Time</label>
+            <div class="flex items-center border-b border-[#D9C5B2]/20 focus-within:border-[#C5A059]">
+              <select name="time" class="w-full bg-[#1A1A1A] border-none focus:ring-0 py-3 text-on-surface appearance-none transition-all">
+                <option>18:00</option><option>19:30</option>
+                <option>20:00</option><option>21:15</option>
+              </select>
+              <span class="material-symbols-outlined text-[#C5A059] text-xl">schedule</span>
+            </div>
+          </div>
+          <div class="relative group">
+            <label class="block font-label-sm text-secondary uppercase mb-2 tracking-widest">Guests</label>
+            <div class="flex items-center border-b border-[#D9C5B2]/20 focus-within:border-[#C5A059]">
+              <select name="guests" class="w-full bg-[#1A1A1A] border-none focus:ring-0 py-3 text-on-surface appearance-none transition-all">
+                <option>2 Guests</option><option>3 Guests</option>
+                <option>4 Guests</option><option>5 Guests</option><option>6 Guests</option>
+              </select>
+              <span class="material-symbols-outlined text-[#C5A059] text-xl">group</span>
+            </div>
+          </div>
+        </div>
+        <div class="relative group">
+          <label class="block font-label-sm text-secondary uppercase mb-2 tracking-widest">Special Requests</label>
+          <textarea name="special_requests" class="w-full bg-transparent border-b border-[#D9C5B2]/20 focus:border-[#C5A059] focus:ring-0 py-3 text-on-surface transition-all placeholder:text-[#D9C5B2]/20 h-32 resize-none" placeholder="Allergies, anniversaries, or specific table preferences..."></textarea>
+        </div>
+        <div class="flex items-center gap-4 py-4">
+          <input class="rounded border-[#D9C5B2]/30 bg-transparent text-[#C5A059] focus:ring-[#C5A059]" id="terms" type="checkbox" required/>
+          <label class="font-label-sm text-[#D9C5B2]/60" for="terms">I acknowledge the 24-hour cancellation policy.</label>
+        </div>
+
+        <!-- Success message -->
+        <div id="success-msg" style="display:none; text-align:center; padding:20px;
+             background:rgba(197,160,89,0.1); border:1px solid rgba(197,160,89,0.3);
+             border-radius:8px; color:#C5A059; font-family:'Noto Serif'; font-style:italic;">
+          ✓ Your reservation has been confirmed. We look forward to welcoming you.
+        </div>
+
+        <button type="submit" id="submit-btn"
+          class="w-full bg-[#C5A059] text-on-primary py-5 rounded-lg font-label-lg uppercase tracking-[0.2em] hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#C5A059]/10">
+          Confirm Reservation
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Gallery -->
+  <section class="max-w-screen-2xl mx-auto px-8 mt-section-gap grid grid-cols-2 md:grid-cols-4 gap-6">
+    <div class="h-64 rounded-lg overflow-hidden group">
+      <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+           src="https://lh3.googleusercontent.com/aida-public/AB6AXuDp63QRdNljkOYrVOA6vL_hWmmc29CNWOwVIDCn_N4ggmWWYZivOeRZ0WJRepb91h2wFNZswnmqo73V--99aSr86tJoeqy0ViIpMH_m3EgqHpx0qLTRT8Xs8YMPUJ1RMf-eDFcnSmbxYJ9b-PsArIefkKzaHXoDSrBWryy75WWNMd1nOBY-I7yMPpFGJfL4-Z3MP-VUHOiXWAuL88P51MXql35KG09frc0O8jLfrJpjKEeoFee1ioRtO6hcTxozgGAuUSmuo0kVMSA"/&gt;
+    </div>
+    <div class="h-64 rounded-lg overflow-hidden group">
+      <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+           src="https://lh3.googleusercontent.com/aida-public/AB6AXuADmGggmZlqtYMoq12Mt-K5VET0o46YgVRbv65PDFH4ESSOdDl0j8BKQUIkY5EARqkDTo3z5s6Iel-etDc0kRsP8TqpWN61MVcixuIqEJSmH-thGVyQ7U_b9VGlQzZrSdneO2J2oetr7jlPccxf3fj2Ub4vaa-rFREjWrrHYwG9BBLbRmsICfGOFasyI-gt9bN5K2ObNVbuT9fB8jdxLW-GQoU-kUIte0C0ZBpScLa-G8S6ZuDMiqfmI6JeE5tcbLD1lI0lNnw0Fcw"/&gt;
+    </div>
+    <div class="h-64 rounded-lg overflow-hidden group">
+      <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+           src="https://lh3.googleusercontent.com/aida-public/AB6AXuAT2EZK6dZxKWiTa0MMfVGFnUwDC0v8jph5VaAB9I0ZWppz2EiFFG-_l8mOrbCVU959lT9vXoyBZY1Ooqh1tiEapEOCB0Xrna69nVPGTqFbW9NV5rSD5XmflIWRJ_KZjAS_IUA3yClkrELSxgmDJl7-zVGtF9ten3A3DX9NKe09Abr3DhoQxp_Ap12DRQkz_R6hwdW-x7Q1JYXNNIhXRzYTu5wBYubXB3wUB_dhS_fTCHOl-txNTxdeP9xGURpk5gDVqZxa1MGp3MY"/&gt;
+    </div>
+    <div class="h-64 rounded-lg overflow-hidden group">
+      <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+           src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGDteDUDbvxGKFxpyHK9ISm4DEtpdKCFTWP2SiyJz_edhF6GgE_A_CRpatOXiSuSf_mg4das2rZAMQmfp7RDyEPa01fX3zT-JhlsAGxYxJD8nk1GkbsI_Coaj-7WBOBM974pdiz38Ac1zkziFP2328W7SgyD2HaIBKCUSUIdo01inJIieuSxpOH1SgpV9gz6oFn3L7QhYcv72zmNXhMl8D_UpvKT6M6ukYWjPPcfpnsyHKBrYXa98u0gSi63KAM3zSVn3ojGfgjRA"/&gt;
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="bg-[#0A0A0A] border-t border-[#D9C5B2]/10">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-12 py-16 mt-20 max-w-screen-2xl mx-auto">
+  <div class="flex flex-col items-center md:items-start mb-8 md:mb-0">
+    <span class="font-['Noto_Serif'] text-[#C5A059] text-xl mb-4">L'Essence</span>
+    <p class="font-['Inter'] font-light tracking-tight text-sm text-[#D9C5B2]/60">© 2024 L'Essence Culinaire. All rights reserved.</p>
+  </div>
+  <div class="flex flex-wrap justify-center gap-8 font-['Inter'] font-light tracking-tight text-sm">
+    <a class="text-[#D9C5B2]/60 hover:text-[#C5A059] transition-colors" href="#">Home</a>
+    <a class="text-[#D9C5B2]/60 hover:text-[#C5A059] transition-colors" href="#">Menu</a>
+    <a class="text-[#C5A059] transition-colors" href="#">Reservations</a>
+    <a class="text-[#D9C5B2]/60 hover:text-[#C5A059] transition-colors" href="#">About</a>
+    <a class="text-[#D9C5B2]/60 hover:text-[#C5A059] transition-colors" href="#">Privacy Policy</a>
+  </div>
+  <div class="flex gap-6 mt-8 md:mt-0">
+    <span class="material-symbols-outlined text-[#D9C5B2]/40 hover:text-[#C5A059] cursor-pointer transition-colors">public</span>
+    <span class="material-symbols-outlined text-[#D9C5B2]/40 hover:text-[#C5A059] cursor-pointer transition-colors">restaurant</span>
+  </div>
+</div>
+</footer>
+
+<!-- Reservation Submit Script -->
+<script>
+async function submitReservation(event) {
+  event.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.textContent = 'Confirming...';
+  btn.disabled = true;
+
+  const form = document.getElementById('reservationForm');
+  const data = {
+    guest_name:       form.querySelector('[name="guest_name"]').value,
+    phone:            form.querySelector('[name="phone"]').value,
+    date:             form.querySelector('[name="date"]').value,
+    time:             form.querySelector('[name="time"]').value,
+    guests:           form.querySelector('[name="guests"]').value,
+    special_requests: form.querySelector('[name="special_requests"]').value,
+    user_email:       currentUser ? currentUser.email : 'guest'
+  };
+
+  try {
+    const { error } = await supabaseClient
+      .from('reservations')
+      .insert([data]);
+    if (error) throw error;
+
+    // Show success
+    btn.style.display = 'none';
+    document.getElementById('success-msg').style.display = 'block';
+    form.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+
+  } catch (err) {
+    btn.textContent = 'Confirm Reservation';
+    btn.disabled = false;
+    alert('Something went wrong. Please try again.');
+    console.error(err);
+  }
+}
+</script>
+
+</body></html>
